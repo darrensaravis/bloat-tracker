@@ -1,5 +1,4 @@
 const STORAGE_KEY = "bloat_tracker_static_v1";
-
 const $ = (id) => document.getElementById(id);
 
 const state = {
@@ -75,7 +74,12 @@ function uid() {
 function save() {
   localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify({ meals: state.meals, symptoms: state.symptoms, v: 1, savedAt: new Date().toISOString() })
+    JSON.stringify({
+      meals: state.meals,
+      symptoms: state.symptoms,
+      v: 1,
+      savedAt: new Date().toISOString(),
+    })
   );
 }
 
@@ -97,8 +101,6 @@ function setDefaults() {
 function renderMealTags() {
   const wrap = $("mealTags");
   const input = $("mealTagInput");
-
-  // remove all chips except the input
   [...wrap.querySelectorAll(".chip")].forEach((n) => n.remove());
 
   state.mealTags.forEach((t) => {
@@ -111,7 +113,6 @@ function renderMealTags() {
     x.className = "chipX";
     x.textContent = "×";
     x.title = "Remove";
-    x.setAttribute("aria-label", `Remove ${t}`);
     x.addEventListener("click", (e) => {
       e.stopPropagation();
       state.mealTags = state.mealTags.filter((z) => z !== t);
@@ -129,6 +130,21 @@ function addTag(raw) {
   if (state.mealTags.includes(t)) return;
   state.mealTags.push(t);
   renderMealTags();
+}
+
+function updateFoodSuggestions() {
+  const dl = document.getElementById("foodSuggestions");
+  if (!dl) return;
+
+  const foods = new Set();
+  state.meals.forEach((m) => (m.tags || []).forEach((t) => foods.add(t)));
+
+  dl.innerHTML = "";
+  [...foods].sort().forEach((f) => {
+    const opt = document.createElement("option");
+    opt.value = f;
+    dl.appendChild(opt);
+  });
 }
 
 function initTagInput() {
@@ -185,7 +201,9 @@ function addMeal() {
   $("mealPortion").value = "M";
   $("mealAt").value = nowLocalISOStringMinute();
   renderMealTags();
+
   save();
+  updateFoodSuggestions();
   renderAll();
 }
 
@@ -215,6 +233,7 @@ function addSymptom() {
   $("pain").value = "";
   $("bloat").value = "5";
   $("symAt").value = nowLocalISOStringMinute();
+
   save();
   renderAll();
 }
@@ -222,6 +241,7 @@ function addSymptom() {
 function deleteMeal(id) {
   state.meals = state.meals.filter((m) => m.id !== id);
   save();
+  updateFoodSuggestions();
   renderAll();
 }
 
@@ -263,12 +283,7 @@ function computeInsights() {
     }
 
     for (const tag of tagsInWindow) {
-      const entry = byFood.get(tag) || {
-        food: tag,
-        count: 0,
-        sumBloat: 0,
-        highCount: 0,
-      };
+      const entry = byFood.get(tag) || { food: tag, count: 0, sumBloat: 0, highCount: 0 };
       entry.count += 1;
       entry.sumBloat += s.bloat;
       if (s.bloat >= 7) entry.highCount += 1;
@@ -342,8 +357,8 @@ function renderInsights() {
 function renderMeals() {
   const list = $("mealsList");
   const empty = $("mealsEmpty");
-
   list.innerHTML = "";
+
   if (!state.meals.length) {
     empty.style.display = "block";
     return;
@@ -402,8 +417,8 @@ function renderMeals() {
 function renderSymptoms() {
   const list = $("symsList");
   const empty = $("symsEmpty");
-
   list.innerHTML = "";
+
   if (!state.symptoms.length) {
     empty.style.display = "block";
     return;
@@ -444,30 +459,6 @@ function renderSymptoms() {
     pill.textContent = b;
     chips.appendChild(pill);
 
-    if (s.gas != null) {
-      const muted = document.createElement("span");
-      muted.className = "muted";
-      muted.textContent = "Gas";
-      chips.appendChild(muted);
-
-      const p = document.createElement("span");
-      p.className = "pill";
-      p.textContent = s.gas;
-      chips.appendChild(p);
-    }
-
-    if (s.pain != null) {
-      const muted = document.createElement("span");
-      muted.className = "muted";
-      muted.textContent = "Pain";
-      chips.appendChild(muted);
-
-      const p = document.createElement("span");
-      p.className = "pill";
-      p.textContent = s.pain;
-      chips.appendChild(p);
-    }
-
     item.appendChild(top);
     item.appendChild(chips);
 
@@ -483,7 +474,6 @@ function renderSymptoms() {
 }
 
 function renderAll() {
-  // newest first
   state.meals.sort((a, b) => (a.at < b.at ? 1 : -1));
   state.symptoms.sort((a, b) => (a.at < b.at ? 1 : -1));
 
@@ -496,9 +486,7 @@ function exportCSV() {
   const lines = [];
   lines.push("type,datetime,foods,portion,bloating,gas,pain,notes");
   state.meals.forEach((m) => {
-    lines.push(
-      toCSVRow(["meal", m.at, (m.tags || []).join(";"), m.portion ?? "", "", "", "", m.notes ?? ""])
-    );
+    lines.push(toCSVRow(["meal", m.at, (m.tags || []).join(";"), m.portion ?? "", "", "", "", m.notes ?? ""]));
   });
   state.symptoms.forEach((s) => {
     lines.push(toCSVRow(["symptom", s.at, "", "", s.bloat ?? "", s.gas ?? "", s.pain ?? "", s.notes ?? ""]));
@@ -522,7 +510,9 @@ async function restoreJSON(file) {
   }
   if (Array.isArray(data.meals)) state.meals = data.meals;
   if (Array.isArray(data.symptoms)) state.symptoms = data.symptoms;
+
   save();
+  updateFoodSuggestions();
   renderAll();
 }
 
@@ -533,6 +523,7 @@ function clearAll() {
   state.mealTags = [];
   localStorage.removeItem(STORAGE_KEY);
   renderMealTags();
+  updateFoodSuggestions();
   renderAll();
 }
 
@@ -556,6 +547,7 @@ function wireEvents() {
 
 (function init() {
   load();
+  updateFoodSuggestions();
   setDefaults();
   initTagInput();
   renderMealTags();

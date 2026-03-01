@@ -241,6 +241,25 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   font-size: 12px;
 }
 
+
+
+/* iPhone/small screens: stack the form rows to avoid overlap */
+@media (max-width: 520px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+
+  input, select {
+    min-width: 0; /* prevents grid overflow weirdness */
+  }
+}
+
+
+
+
+
+
+
 @media (max-width: 900px) {
   .header { flex-direction: column; }
   .grid { grid-template-columns: 1fr; }

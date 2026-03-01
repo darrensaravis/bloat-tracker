@@ -256,3 +256,13 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   .span2 { grid-column: span 1; }
   .baseline { margin-left: 0; }
 }
+
+
+/* iOS Safari: force datetime-local to size like other inputs */
+input[type="datetime-local"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}

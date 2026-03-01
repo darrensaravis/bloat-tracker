@@ -48,16 +48,26 @@
         <div class="field">
           <label>Foods</label>
           <div id="mealTags" class="tagInput" role="group" aria-label="Food tags">
-            <input
-              id="mealTagInput"
-              class="tagInputField"
-              placeholder="Type a food and press Enter…"
-              autocapitalize="none"
-              autocomplete="off"
-              autocorrect="off"
-              list="foodSuggestions"
-            />
-            <datalist id="foodSuggestions"></datalist>
+           
+            
+            
+            
+<div class="tagInputWrap">
+  <input
+    id="mealTagInput"
+    class="tagInputField"
+    placeholder="Type a food and press Enter…"
+    autocapitalize="none"
+    autocomplete="off"
+    autocorrect="off"
+  />
+  <div id="foodSuggest" class="suggest" style="display:none;"></div>
+</div>
+
+
+
+
+            
           </div>
           <div class="hint">Tip: you can paste a comma-separated list.</div>
         </div>
@@ -174,3 +184,4 @@
     <script src="script.js"></script>
   </body>
 </html>
+

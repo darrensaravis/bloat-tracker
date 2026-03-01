@@ -47,28 +47,21 @@
 
         <div class="field">
           <label>Foods</label>
+
+          <!-- IMPORTANT: input is a direct child of #mealTags (chip logic depends on this) -->
           <div id="mealTags" class="tagInput" role="group" aria-label="Food tags">
-           
-            
-            
-            
-<div class="tagInputWrap">
-  <input
-    id="mealTagInput"
-    class="tagInputField"
-    placeholder="Type a food and press Enter…"
-    autocapitalize="none"
-    autocomplete="off"
-    autocorrect="off"
-  />
-  <div id="foodSuggest" class="suggest" style="display:none;"></div>
-</div>
-
-
-
-
-            
+            <input
+              id="mealTagInput"
+              class="tagInputField"
+              placeholder="Type a food and press Enter…"
+              autocapitalize="none"
+              autocomplete="off"
+              autocorrect="off"
+              inputmode="text"
+            />
+            <div id="foodSuggest" class="suggest" style="display: none;"></div>
           </div>
+
           <div class="hint">Tip: you can paste a comma-separated list.</div>
         </div>
 
@@ -144,7 +137,7 @@
           Add a few meals + symptoms to see suspects (needs at least one symptom).
         </div>
 
-        <div id="insightsTableWrap" class="tableWrap" style="display:none;">
+        <div id="insightsTableWrap" class="tableWrap" style="display: none;">
           <table class="table">
             <thead>
               <tr>
@@ -184,4 +177,3 @@
     <script src="script.js"></script>
   </body>
 </html>
-

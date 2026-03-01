@@ -70,6 +70,7 @@ input, select {
   background: rgba(255,255,255,0.04);
   color: var(--text);
   outline: none;
+  min-width: 0;
 }
 
 input:focus, select:focus {
@@ -241,37 +242,14 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   font-size: 12px;
 }
 
-
-
-/* iPhone/small screens: stack the form rows to avoid overlap */
+/* iPhone/small screens: stack rows to avoid overlap */
 @media (max-width: 520px) {
-  .row {
-    grid-template-columns: 1fr;
-  }
-
-
-@media (max-width: 520px) {
-  .tagInputField {
-    min-width: 120px;
-  }
-  .tagInput {
-    padding: 6px;
-  }
+  .row { grid-template-columns: 1fr; }
+  .tagInputField { min-width: 120px; }
+  .tagInput { padding: 6px; }
 }
 
-
-  
-  input, select {
-    min-width: 0; /* prevents grid overflow weirdness */
-  }
-}
-
-
-
-
-
-
-
+/* General mobile/tablet */
 @media (max-width: 900px) {
   .header { flex-direction: column; }
   .grid { grid-template-columns: 1fr; }

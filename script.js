@@ -1,4 +1,4 @@
-const STORAGE_KEY = "bloat_tracker_static_v1";
+const STORAGE_KEY = "bloat_tracker_static_v2";
 const $ = (id) => document.getElementById(id);
 
 const state = {
@@ -77,7 +77,7 @@ function save() {
     JSON.stringify({
       meals: state.meals,
       symptoms: state.symptoms,
-      v: 1,
+      v: 2,
       savedAt: new Date().toISOString(),
     })
   );
@@ -98,9 +98,15 @@ function setDefaults() {
   $("symAt").value = nowLocalISOStringMinute();
 }
 
+/* ------------------------
+   Chips / tag input
+------------------------- */
+
 function renderMealTags() {
   const wrap = $("mealTags");
   const input = $("mealTagInput");
+
+  // remove only chips (keep input + suggest box)
   [...wrap.querySelectorAll(".chip")].forEach((n) => n.remove());
 
   state.mealTags.forEach((t) => {
@@ -113,6 +119,7 @@ function renderMealTags() {
     x.className = "chipX";
     x.textContent = "×";
     x.title = "Remove";
+    x.setAttribute("aria-label", `Remove ${t}`);
     x.addEventListener("click", (e) => {
       e.stopPropagation();
       state.mealTags = state.mealTags.filter((z) => z !== t);
@@ -120,6 +127,8 @@ function renderMealTags() {
     });
 
     chip.appendChild(x);
+
+    // IMPORTANT: input is direct child of #mealTags so this works
     wrap.insertBefore(chip, input);
   });
 }
@@ -132,34 +141,91 @@ function addTag(raw) {
   renderMealTags();
 }
 
-function updateFoodSuggestions() {
-  const dl = document.getElementById("foodSuggestions");
-  if (!dl) return;
+/* ------------------------
+   Autocomplete suggestions
+   (works on iPhone Safari)
+------------------------- */
 
+function getAllFoods() {
   const foods = new Set();
   state.meals.forEach((m) => (m.tags || []).forEach((t) => foods.add(t)));
+  return [...foods].filter(Boolean).sort();
+}
 
-  dl.innerHTML = "";
-  [...foods].sort().forEach((f) => {
-    const opt = document.createElement("option");
-    opt.value = f;
-    dl.appendChild(opt);
-  });
+function renderSuggestions(query) {
+  const box = $("foodSuggest");
+  if (!box) return;
+
+  const q = normalizeFood(query);
+  if (!q) {
+    box.style.display = "none";
+    box.innerHTML = "";
+    return;
+  }
+
+  const matches = getAllFoods()
+    .filter((f) => f.startsWith(q) && !state.mealTags.includes(f))
+    .slice(0, 8);
+
+  if (!matches.length) {
+    box.style.display = "none";
+    box.innerHTML = "";
+    return;
+  }
+
+  box.innerHTML = matches
+    .map((m) => `<div class="suggestItem" data-v="${m}">${m}</div>`)
+    .join("");
+
+  box.style.display = "block";
+}
+
+function hideSuggestions() {
+  const box = $("foodSuggest");
+  if (!box) return;
+  box.style.display = "none";
+  box.innerHTML = "";
 }
 
 function initTagInput() {
   const wrap = $("mealTags");
   const input = $("mealTagInput");
+  const suggest = $("foodSuggest");
 
   wrap.addEventListener("click", () => input.focus());
+
+  input.addEventListener("input", () => renderSuggestions(input.value));
+  input.addEventListener("focus", () => renderSuggestions(input.value));
+
+  // Let taps on suggestion items register before blur hides dropdown
+  input.addEventListener("blur", () => setTimeout(hideSuggestions, 160));
+
+  // Tap/click suggestion -> add chip
+  suggest?.addEventListener("pointerdown", (e) => {
+    const el = e.target;
+    const v = el?.getAttribute?.("data-v");
+    if (!v) return;
+    e.preventDefault();
+    addTag(v);
+    input.value = "";
+    hideSuggestions();
+    input.focus();
+  });
 
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
       addTag(input.value);
       input.value = "";
+      hideSuggestions();
       return;
     }
+
+    if (e.key === "Escape") {
+      hideSuggestions();
+      return;
+    }
+
     if (e.key === "Backspace" && !input.value && state.mealTags.length) {
       state.mealTags.pop();
       renderMealTags();
@@ -169,6 +235,7 @@ function initTagInput() {
   input.addEventListener("paste", (e) => {
     const text = e.clipboardData?.getData("text") ?? "";
     if (!text) return;
+
     if (text.includes(",") || text.includes("\n")) {
       e.preventDefault();
       text
@@ -177,9 +244,14 @@ function initTagInput() {
         .filter(Boolean)
         .forEach(addTag);
       input.value = "";
+      hideSuggestions();
     }
   });
 }
+
+/* ------------------------
+   Add meal / symptom
+------------------------- */
 
 function addMeal() {
   const at = $("mealAt").value;
@@ -200,10 +272,11 @@ function addMeal() {
   $("mealNotes").value = "";
   $("mealPortion").value = "M";
   $("mealAt").value = nowLocalISOStringMinute();
+  $("mealTagInput").value = "";
   renderMealTags();
+  hideSuggestions();
 
   save();
-  updateFoodSuggestions();
   renderAll();
 }
 
@@ -241,7 +314,6 @@ function addSymptom() {
 function deleteMeal(id) {
   state.meals = state.meals.filter((m) => m.id !== id);
   save();
-  updateFoodSuggestions();
   renderAll();
 }
 
@@ -250,6 +322,10 @@ function deleteSymptom(id) {
   save();
   renderAll();
 }
+
+/* ------------------------
+   Insights
+------------------------- */
 
 function computeInsights() {
   const windowHours = Number($("windowHours").value);
@@ -283,7 +359,12 @@ function computeInsights() {
     }
 
     for (const tag of tagsInWindow) {
-      const entry = byFood.get(tag) || { food: tag, count: 0, sumBloat: 0, highCount: 0 };
+      const entry = byFood.get(tag) || {
+        food: tag,
+        count: 0,
+        sumBloat: 0,
+        highCount: 0,
+      };
       entry.count += 1;
       entry.sumBloat += s.bloat;
       if (s.bloat >= 7) entry.highCount += 1;
@@ -354,11 +435,15 @@ function renderInsights() {
   });
 }
 
+/* ------------------------
+   Recent lists
+------------------------- */
+
 function renderMeals() {
   const list = $("mealsList");
   const empty = $("mealsEmpty");
-  list.innerHTML = "";
 
+  list.innerHTML = "";
   if (!state.meals.length) {
     empty.style.display = "block";
     return;
@@ -417,8 +502,8 @@ function renderMeals() {
 function renderSymptoms() {
   const list = $("symsList");
   const empty = $("symsEmpty");
-  list.innerHTML = "";
 
+  list.innerHTML = "";
   if (!state.symptoms.length) {
     empty.style.display = "block";
     return;
@@ -459,6 +544,30 @@ function renderSymptoms() {
     pill.textContent = b;
     chips.appendChild(pill);
 
+    if (s.gas != null) {
+      const muted = document.createElement("span");
+      muted.className = "muted";
+      muted.textContent = "Gas";
+      chips.appendChild(muted);
+
+      const p = document.createElement("span");
+      p.className = "pill";
+      p.textContent = s.gas;
+      chips.appendChild(p);
+    }
+
+    if (s.pain != null) {
+      const muted = document.createElement("span");
+      muted.className = "muted";
+      muted.textContent = "Pain";
+      chips.appendChild(muted);
+
+      const p = document.createElement("span");
+      p.className = "pill";
+      p.textContent = s.pain;
+      chips.appendChild(p);
+    }
+
     item.appendChild(top);
     item.appendChild(chips);
 
@@ -482,6 +591,10 @@ function renderAll() {
   renderSymptoms();
 }
 
+/* ------------------------
+   Export / backup / restore / clear
+------------------------- */
+
 function exportCSV() {
   const lines = [];
   lines.push("type,datetime,foods,portion,bloating,gas,pain,notes");
@@ -498,7 +611,11 @@ function exportCSV() {
 
 function backupJSON() {
   const fname = `bloat-tracker-${new Date().toISOString().slice(0, 10)}.json`;
-  downloadText(fname, JSON.stringify({ meals: state.meals, symptoms: state.symptoms, v: 1 }, null, 2), "application/json");
+  downloadText(
+    fname,
+    JSON.stringify({ meals: state.meals, symptoms: state.symptoms, v: 2 }, null, 2),
+    "application/json"
+  );
 }
 
 async function restoreJSON(file) {
@@ -512,7 +629,6 @@ async function restoreJSON(file) {
   if (Array.isArray(data.symptoms)) state.symptoms = data.symptoms;
 
   save();
-  updateFoodSuggestions();
   renderAll();
 }
 
@@ -522,10 +638,15 @@ function clearAll() {
   state.symptoms = [];
   state.mealTags = [];
   localStorage.removeItem(STORAGE_KEY);
+  $("mealTagInput").value = "";
   renderMealTags();
-  updateFoodSuggestions();
+  hideSuggestions();
   renderAll();
 }
+
+/* ------------------------
+   Wire up UI
+------------------------- */
 
 function wireEvents() {
   $("addMealBtn").addEventListener("click", addMeal);
@@ -547,7 +668,6 @@ function wireEvents() {
 
 (function init() {
   load();
-  updateFoodSuggestions();
   setDefaults();
   initTagInput();
   renderMealTags();

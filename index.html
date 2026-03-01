@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bloat Tracker</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div>
+        <div class="title">Bloat Tracker</div>
+        <div class="subtitle">Single-user • local-only • tag/chip entry</div>
+      </div>
+
+      <div class="headerActions">
+        <button id="exportCsvBtn" class="btn" type="button">Export CSV</button>
+        <button id="backupJsonBtn" class="btn" type="button">Backup JSON</button>
+
+        <label class="btn btnGhost" title="Restore from JSON backup">
+          Restore
+          <input id="restoreInput" type="file" accept="application/json" hidden />
+        </label>
+
+        <button id="clearBtn" class="btnDanger" type="button">Clear</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <div class="cardTitle">Log a meal</div>
+
+        <div class="row">
+          <div class="field">
+            <label>Time</label>
+            <input id="mealAt" type="datetime-local" />
+          </div>
+          <div class="field">
+            <label>Portion</label>
+            <select id="mealPortion">
+              <option value="S">S</option>
+              <option value="M" selected>M</option>
+              <option value="L">L</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Foods</label>
+          <div id="mealTags" class="tagInput" role="group" aria-label="Food tags">
+            <input
+              id="mealTagInput"
+              class="tagInputField"
+              placeholder="Type a food and press Enter…"
+              autocapitalize="none"
+              autocomplete="off"
+              autocorrect="off"
+            />
+          </div>
+          <div class="hint">Tip: you can paste a comma-separated list.</div>
+        </div>
+
+        <div class="field">
+          <label>Notes (optional)</label>
+          <input id="mealNotes" placeholder="restaurant, stress, travel, etc." />
+        </div>
+
+        <button id="addMealBtn" class="btnPrimary" type="button">Add meal</button>
+      </section>
+
+      <section class="card">
+        <div class="cardTitle">Log bloating</div>
+
+        <div class="row">
+          <div class="field">
+            <label>Time</label>
+            <input id="symAt" type="datetime-local" />
+          </div>
+          <div class="field">
+            <label>Bloating (0–10)</label>
+            <input id="bloat" type="number" min="0" max="10" value="5" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Gas (optional)</label>
+            <input id="gas" type="number" min="0" max="10" placeholder="0–10" />
+          </div>
+          <div class="field">
+            <label>Pain (optional)</label>
+            <input id="pain" type="number" min="0" max="10" placeholder="0–10" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Notes (optional)</label>
+          <input id="symNotes" placeholder="timing, cramps, etc." />
+        </div>
+
+        <button id="addSymBtn" class="btnPrimary" type="button">Add symptom</button>
+      </section>
+
+      <section class="card span2">
+        <div class="cardTitle">Insights</div>
+
+        <div class="controls">
+          <div class="field">
+            <label>Look-back window</label>
+            <select id="windowHours">
+              <option value="2">2 hours</option>
+              <option value="6" selected>6 hours</option>
+              <option value="12">12 hours</option>
+              <option value="24">24 hours</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Min occurrences</label>
+            <select id="minCount">
+              <option value="1">1</option>
+              <option value="2" selected>2</option>
+              <option value="3">3</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+
+          <div id="baseline" class="baseline">Baseline bloating: —</div>
+        </div>
+
+        <div id="insightsEmpty" class="empty">
+          Add a few meals + symptoms to see suspects (needs at least one symptom).
+        </div>
+
+        <div id="insightsTableWrap" class="tableWrap" style="display:none;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Food</th>
+                <th>Count</th>
+                <th>Avg bloat after</th>
+                <th>Lift vs baseline</th>
+                <th>% high (≥7)</th>
+              </tr>
+            </thead>
+            <tbody id="insightsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="hint" style="margin-top: 10px;">
+          How it works: for each symptom entry, it looks back the selected window and credits any foods eaten in that window.
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="cardTitle">Recent meals</div>
+        <div id="mealsEmpty" class="empty">No meals yet.</div>
+        <div id="mealsList" class="list"></div>
+      </section>
+
+      <section class="card">
+        <div class="cardTitle">Recent bloating</div>
+        <div id="symsEmpty" class="empty">No symptoms yet.</div>
+        <div id="symsList" class="list"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      Privacy: data stays on this device (localStorage). Use “Backup JSON” occasionally.
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
